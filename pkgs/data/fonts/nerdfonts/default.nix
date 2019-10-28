@@ -1,35 +1,33 @@
-{ stdenv, fetchFromGitHub, which, withFont ? "" }:
+{ stdenv, fetchzip, recurseIntoAttrs }:
 
-stdenv.mkDerivation rec {
-  version = "2.0.0";
-  pname = "nerdfonts";
-  src = fetchFromGitHub {
-    owner = "ryanoasis";
-    repo = "nerd-fonts";
-    rev = version;
-    sha256 = "09i467hyskvzj2wn5sj6shvc9pb0a0rx5iknjkkkbg1ng3bla7nm";
-  };
-  dontPatchShebangs = true;
-  buildInputs = [ which ];
-  patchPhase = ''
-    patchShebangs install.sh
-    sed -i -e 's|font_dir="\$HOME/.local/share/fonts|font_dir="$out/share/fonts/truetype|g' install.sh
-  '';
-  installPhase = ''
-    mkdir -p $out/share/fonts/truetype
-    ./install.sh ${withFont}
-  '';
+let
+  allFonts = import ./fonts.nix;
+  mkFont = {name, url, sha256}: {
+    name = name;
+    value = fetchzip {
+      name = "nerdfonts-${name}-${allFonts.version}";
 
-  meta = with stdenv.lib; {
-    description = ''
-      Nerd Fonts is a project that attempts to patch as many developer targeted
-      and/or used fonts as possible. The patch is to specifically add a high
-      number of additional glyphs from popular 'iconic fonts' such as Font
-      Awesome, Devicons, Octicons, and others.
-    '';
-    homepage = https://github.com/ryanoasis/nerd-fonts;
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
-    hydraPlatforms = []; # 'Output limit exceeded' on Hydra
+      url = url;
+
+      postFetch = ''
+        mkdir -p $out/share/fonts
+        echo $downloadedFile
+        unzip -j $downloadedFile "*.otf" -d $out/share/fonts/opentype
+        unzip -j $downloadedFile "*.ttf" -d $out/share/fonts/truetype
+      '';
+
+      sha256 = sha256;
+
+      meta = with stdenv.lib; {
+        description = ''
+          A Nerd Font-patched version of ${name}
+        '';
+        homepage = https://github.com/ryanoasis/nerd-fonts;
+        license = licenses.mit;
+        maintainers = with maintainers; [ ];
+      };
+    };
   };
-}
+ 
+in
+  builtins.listToAttrs (builtins.map mkFont allFonts.fonts)
