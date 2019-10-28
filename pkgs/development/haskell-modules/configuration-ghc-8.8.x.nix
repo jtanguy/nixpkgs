@@ -64,8 +64,12 @@ self: super: {
   tasty-hedgehog = doJailbreak super.tasty-hedgehog;
   test-framework = doJailbreak super.test-framework;
   th-expand-syns = doJailbreak super.th-expand-syns;
+  # TODO: remove when upstream accepts https://github.com/snapframework/io-streams-haproxy/pull/17
+  io-streams-haproxy = doJailbreak super.io-streams-haproxy; # base >=4.5 && <4.13
+  snap-server = doJailbreak super.snap-server;
 
   # use latest version to fix the build
+  generics-sop = self.generics-sop_0_5_0_0;
   hackage-db = self.hackage-db_2_1_0;
   lens = self.lens_4_18_1;
   memory = self.memory_0_15_0;
@@ -77,20 +81,14 @@ self: super: {
   regex-posix = self.regex-posix_0_96_0_0;
   regex-tdfa = self.regex-tdfa_1_3_0;
   shelly = self.shelly_1_9_0;
-  string-qq = self.string-qq_0_0_4;
-  tls = self.tls_1_5_1;
-  vector-th-unbox = self.vector-th-unbox_0_2_1_7;
-  X11 = self.X11_1_9_1;
+  sop-core = self.sop-core_0_5_0_0;
+  tls = self.tls_1_5_2;
   xmonad-contrib = self.xmonad-contrib_0_16;
 
   # These packages don't work and need patching and/or an update.
   hackage-security = appendPatch (doJailbreak super.hackage-security) (pkgs.fetchpatch {
     url = "https://raw.githubusercontent.com/hvr/head.hackage/master/patches/hackage-security-0.5.3.0.patch";
     sha256 = "0l8x0pbsn18fj5ak5q0g5rva4xw1s9yc4d86a1pfyaz467b9i5a4";
-  });
-  socks = appendPatch (doJailbreak super.socks) (pkgs.fetchpatch {
-    url = "https://raw.githubusercontent.com/hvr/head.hackage/master/patches/socks-0.6.0.patch";
-    sha256 = "1dsqmx0sw62x4glh43c0sbizd2y00v5xybiqadn96v6pmfrap5cp";
   });
   polyparse = appendPatch (doJailbreak super.polyparse) (pkgs.fetchpatch {
     url = "https://raw.githubusercontent.com/hvr/head.hackage/master/patches/polyparse-1.12.1.patch";
@@ -101,10 +99,6 @@ self: super: {
     url = "https://gitlab.haskell.org/ghc/head.hackage/raw/master/patches/haskell-src-meta-0.8.3.patch";
     sha256 = "1asl932mibr5y057xx8v1a7n3qy87lcnclsfh8pbxq1m3iwjkxy8";
   });
-  asn1-encoding = appendPatch (dontCheck (doJailbreak super.asn1-encoding)) (pkgs.fetchpatch {
-    url = "https://gitlab.haskell.org/ghc/head.hackage/raw/master/patches/asn1-encoding-0.9.5.patch";
-    sha256 = "0a3159rnaw6shjzdm46799crd4pxh33s23qy51xa7z6nv5q8wsb5";
-  });
   vault = dontHaddock super.vault;
   monad-par = dontCheck super.monad-par;   # test suite does not compile in monad-par-0.3.4.8
 
@@ -113,12 +107,15 @@ self: super: {
     url = "https://github.com/simonmar/alex/commit/deaae6eddef5186bfd0e42e2c3ced39e26afa4d6.patch";
     sha256 = "1v40gmnw4lqyk271wngdwz8whpfdhmza58srbkka8icwwwrck3l5";
   });
-
-  # https://github.com/sol/hpack/issues/371
-  hpack = appendPatch super.hpack (pkgs.fetchpatch {
-    url = "https://gitlab.haskell.org/ghc/head.hackage/raw/master/patches/hpack-0.32.0.patch";
-    sha256 = "11ccl9f7vwbf5cpzknlyvrwgkzpajk4vq9jk9yb5f9la9ggwb244";
-  });
+  # https://github.com/snapframework/snap-core/issues/288
+  snap-core = overrideCabal super.snap-core (drv: { prePatch = "substituteInPlace src/Snap/Internal/Core.hs --replace 'fail   = Fail.fail' ''"; });
+  # needs a release
+  json = overrideCabal super.json (drv: { prePatch = "substituteInPlace json.cabal --replace '4.13' '4.14'"; patches = [(
+    pkgs.fetchpatch {
+      url = "https://github.com/GaloisInc/json/commit/9d36ca5d865be7e4b2126b68a444b901941d2492.patch";
+      sha256 = "0vyi5nbivkqg6zngq7rb3wwcj9043m4hmyk155nrcddl8j2smfzv";
+    }
+  )]; });
 
   # Upstream ships a broken Setup.hs file.
   csv = overrideCabal super.csv (drv: { prePatch = "rm Setup.hs"; });

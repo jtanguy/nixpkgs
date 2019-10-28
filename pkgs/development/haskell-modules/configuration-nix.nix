@@ -97,7 +97,10 @@ self: super: builtins.intersectAttrs super {
   # profiling is disabled to allow C++/C mess to work, which is fixed in GHC 8.8
   cachix = disableLibraryProfiling super.cachix;
 
+  # avoid compiling twice by providing executable as a separate output (with small closure size)
   niv = enableSeparateBinOutput super.niv;
+  ormolu = enableSeparateBinOutput super.ormolu;
+  ghcid = enableSeparateBinOutput super.ghcid;
 
   # Ensure the necessary frameworks for Darwin.
   OpenAL = if pkgs.stdenv.isDarwin
@@ -109,7 +112,6 @@ self: super: builtins.intersectAttrs super {
     then addExtraLibrary super.proteaaudio pkgs.darwin.apple_sdk.frameworks.AudioToolbox
     else super.proteaaudio;
 
-  ghcid = enableSeparateBinOutput super.ghcid;
 
   hzk = overrideCabal super.hzk (drv: {
     preConfigure = "sed -i -e /include-dirs/d hzk.cabal";
@@ -440,6 +442,14 @@ self: super: builtins.intersectAttrs super {
     libraryHaskellDepends = drv.libraryHaskellDepends
       ++ pkgs.lib.optionals pkgs.stdenv.isDarwin
                             [ pkgs.darwin.apple_sdk.frameworks.OpenCL ];
+  });
+
+  # depends on 'hie' executable
+  lsp-test = dontCheck super.lsp-test;
+
+  # tests depend on executable
+  ghcide = overrideCabal super.ghcide (drv: {
+    preCheck = ''export PATH="$PWD/dist/build/ghcide:$PATH"'';
   });
 
   # GLUT uses `dlopen` to link to freeglut, so we need to set the RUNPATH correctly for
