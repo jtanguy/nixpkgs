@@ -11,9 +11,9 @@ let
 
       postFetch = ''
         mkdir -p $out/share/fonts
-        echo $downloadedFile
-        unzip -j $downloadedFile "*.otf" -d $out/share/fonts/opentype
-        unzip -j $downloadedFile "*.ttf" -d $out/share/fonts/truetype
+        unzip -l $downloadedFile
+        unzip -j $downloadedFile "*.otf" -d $out/share/fonts/opentype || true
+        unzip -j $downloadedFile "*.ttf" -d $out/share/fonts/truetype || true
       '';
 
       sha256 = sha256;
